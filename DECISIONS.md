@@ -2,12 +2,30 @@
 
 ## What insight from the data drove the decision
 
-Analysis of the usage data revealed that 32% of beta users (16 of 50) tried the product once and never returned. Digging into this cohort exposed two key signals: 44% of these churned users never uploaded a document — meaning they never experienced the product's core value of document-grounded, cited answers — and the responses they received had measurably worse citation quality (1.74 average sources cited vs 2.79 for returning users, with a 23.5% zero-citation rate vs 15.3%). Critically, 56% of these users left silently without giving any feedback, making it impossible to diagnose or recover from their poor experience. The customer feedback reinforced this: lawyers described uncited answers as "terrifying" in the context of advising on multi-million pound acquisitions, and one partner said they would "pay double" for a tool that acknowledged its own uncertainty.
+32% of beta users (16/50) tried the product once and never returned. Two signals stood out:
+
+- **44% never uploaded a document** — they never reached the core value of cited, document-grounded answers
+- **Citation quality was worse for churned users** — 1.74 avg sources cited vs 2.79 for returning users; 23.5% zero-citation rate vs 15.3%
+- **56% left without any feedback** — no way to diagnose or recover from poor experiences
+- Customer feedback reinforced this: lawyers called uncited answers "terrifying" for multi-million pound deals
 
 ## Why this over other options
 
-We considered a confidence indicator on AI responses (which addresses trust directly) and export-to-Word functionality (requested by one firm). We chose to build two features that attack the one-and-done problem from both ends: a **guided onboarding experience** with a pre-loaded sample document, and a **structured feedback mechanism** with predefined reasons on negative ratings. The onboarding directly solves the 44% who never uploaded a document by removing the activation barrier entirely — users experience high-quality cited answers on a real CRE document within minutes, before risking their own files. The onboarding also sets correct expectations upfront with an explicit warning that the tool works **only with uploaded documents** and is **not a general legal assistant** — addressing the mismatch between user expectations and product capability that likely contributed to early churn. The feedback dropdown captures the "why" behind negative experiences (answer not in document, wrong citation, too vague, not what I asked) so the team can systematically improve quality instead of guessing at the reasons behind silent churn. Each feedback submission is logged with structured telemetry (message context, document details, citation count, reason) to enable data-driven quality improvements. Together, these features address the two clearest gaps in the data: getting users to the activation moment, and creating a feedback loop for when they don't convert.
+We considered confidence indicators (addresses trust directly) and export-to-Word (requested by one firm). We chose two features that attack one-and-done churn from both ends:
+
+**1. Guided onboarding with sample document**
+- Removes the activation barrier — users experience cited answers on a real CRE document within minutes
+- Sets expectations upfront: explicit warning that the tool works **only with uploaded documents**, not a general legal assistant
+- Directly addresses the 44% who never uploaded
+
+**2. Structured feedback with predefined reasons**
+- Thumbs down triggers a dropdown: "answer not in document", "wrong citation", "too vague", "not what I asked", "other"
+- Each submission logged with structured telemetry (message context, document details, citation count, reason)
+- Replaces silent churn with actionable data for quality improvement
 
 ## What we'd do next with more time
 
-With more time, the highest-leverage next steps would be: (1) behaviour-triggered intervention emails — segment users by whether they uploaded a document and whether they received low-citation responses, then send targeted re-engagement within 24-48 hours; (2) inline citation verification — when the AI references "section 4.2", make it clickable to jump directly to that page in the document viewer, reducing the verification burden that lawyers described as the make-or-break trust threshold; (3) cohort tracking of the activation event ("asked a question and received a cited answer") against Day 7 and Day 30 retention to validate whether onboarding actually moves the retention needle. We would also A/B test the onboarding flow — specifically whether forcing vs. suggesting the sample document produces better activation rates.
+- **Behaviour-triggered emails** — segment by upload status and citation quality, re-engage within 24-48 hours
+- **Inline citation verification** — clickable references ("section 4.2") that jump to the document viewer page
+- **Cohort tracking** — measure activation ("asked a question, received a cited answer") against D7/D30 retention
+- **A/B test onboarding** — forcing vs suggesting the sample document to optimise activation rates
