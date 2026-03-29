@@ -70,6 +70,12 @@ _test_app.include_router(messages.router)
 _test_app.include_router(documents.router)
 _test_app.dependency_overrides[get_session] = _get_test_session
 
+# The SSE streaming handler in messages.py imports async_session directly
+# (bypasses DI) to save the assistant message. Patch it to use the test DB.
+import takehome.db.session as _session_mod
+
+_session_mod.async_session = _test_session
+
 
 @pytest.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:

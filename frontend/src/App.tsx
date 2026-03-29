@@ -1,13 +1,26 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChatSidebar } from "./components/ChatSidebar";
 import { ChatWindow } from "./components/ChatWindow";
 import { DocumentViewer } from "./components/DocumentViewer";
+import { Onboarding } from "./components/Onboarding";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { useConversations } from "./hooks/use-conversations";
 import { useDocument } from "./hooks/use-document";
 import { useMessages } from "./hooks/use-messages";
+import * as api from "./lib/api";
+
+const ONBOARDING_KEY = "orbital_onboarding_complete";
 
 export default function App() {
+	const [showOnboarding, setShowOnboarding] = useState(false);
+
+	// Check onboarding status on mount
+	useEffect(() => {
+		if (!localStorage.getItem(ONBOARDING_KEY)) {
+			setShowOnboarding(true);
+		}
+	}, []);
+
 	const {
 		conversations,
 		selectedId,
@@ -25,6 +38,7 @@ export default function App() {
 		streaming,
 		streamingContent,
 		send,
+		updateMessage,
 	} = useMessages(selectedId);
 
 	const {
@@ -61,6 +75,24 @@ export default function App() {
 		await create();
 	}, [create]);
 
+	const handleOnboardingComplete = useCallback(() => {
+		localStorage.setItem(ONBOARDING_KEY, "true");
+		setShowOnboarding(false);
+	}, []);
+
+	const handleLoadSample = useCallback(async () => {
+		// Create a new conversation and load the sample document into it
+		const conv = await api.createConversation();
+		await api.loadSampleDocument(conv.id);
+		refreshConversations();
+		select(conv.id);
+		refreshDocuments();
+	}, [refreshConversations, select, refreshDocuments]);
+
+	const handleStartOnboarding = useCallback(() => {
+		setShowOnboarding(true);
+	}, []);
+
 	return (
 		<TooltipProvider delayDuration={200}>
 			<div className="flex h-screen bg-neutral-50">
@@ -71,6 +103,7 @@ export default function App() {
 					onSelect={select}
 					onCreate={handleCreate}
 					onDelete={remove}
+					onStartOnboarding={handleStartOnboarding}
 				/>
 
 				<ChatWindow
@@ -84,6 +117,7 @@ export default function App() {
 					conversationId={selectedId}
 					onSend={handleSend}
 					onUpload={handleUpload}
+					onMessageUpdate={updateMessage}
 				/>
 
 				<DocumentViewer
@@ -93,6 +127,13 @@ export default function App() {
 					onSelectDocument={setSelectedDocumentId}
 					onDeleteDocument={removeDocument}
 				/>
+
+				{showOnboarding && (
+					<Onboarding
+						onComplete={handleOnboardingComplete}
+						onLoadSample={handleLoadSample}
+					/>
+				)}
 			</div>
 		</TooltipProvider>
 	);

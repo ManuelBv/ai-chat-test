@@ -92,6 +92,32 @@ export async function deleteDocument(documentId: string): Promise<void> {
 	}
 }
 
+export async function loadSampleDocument(
+	conversationId: string,
+): Promise<Document> {
+	const res = await fetch(
+		`${BASE}/conversations/${conversationId}/sample-document`,
+		{ method: "POST" },
+	);
+	return handleResponse<Document>(res);
+}
+
 export function getDocumentUrl(documentId: string): string {
 	return `${BASE}/documents/${documentId}/content`;
+}
+
+export async function submitFeedback(
+	messageId: string,
+	feedback: "thumbs_up" | "thumbs_down" | null,
+	feedbackReason?: string | null,
+): Promise<Message> {
+	const res = await fetch(`${BASE}/messages/${messageId}/feedback`, {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			feedback,
+			feedback_reason: feedbackReason ?? null,
+		}),
+	});
+	return handleResponse<Message>(res);
 }

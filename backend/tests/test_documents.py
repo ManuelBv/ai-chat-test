@@ -212,3 +212,26 @@ async def test_conversation_list_has_document_flag(client: AsyncClient, conversa
     convos = res.json()
     target = next(c for c in convos if c["id"] == conv_id)
     assert target["has_document"] is True
+
+
+async def test_load_sample_document(client: AsyncClient, conversation: dict):
+    conv_id = conversation["id"]
+    res = await client.post(f"/api/conversations/{conv_id}/sample-document")
+    assert res.status_code == 201
+    data = res.json()
+    assert data["filename"] == "title-report-lot-7.pdf"
+    assert data["conversation_id"] == conv_id
+    assert data["page_count"] > 0
+
+
+async def test_load_sample_to_nonexistent_conversation(client: AsyncClient):
+    res = await client.post("/api/conversations/nonexistent123/sample-document")
+    assert res.status_code == 404
+
+
+async def test_list_sample_documents(client: AsyncClient):
+    res = await client.get("/api/sample-documents")
+    assert res.status_code == 200
+    samples = res.json()
+    assert isinstance(samples, list)
+    assert "title-report-lot-7.pdf" in samples

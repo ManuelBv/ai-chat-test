@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Literal
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
@@ -27,12 +28,24 @@ router = APIRouter(tags=["messages"])
 # --------------------------------------------------------------------------- #
 
 
+VALID_FEEDBACK = {"thumbs_up", "thumbs_down"}
+VALID_REASONS = {
+    "not_in_document",
+    "citation_wrong",
+    "too_vague",
+    "not_what_i_asked",
+    "other",
+}
+
+
 class MessageOut(BaseModel):
     id: str
     conversation_id: str
     role: str
     content: str
     sources_cited: int
+    feedback: str | None = None
+    feedback_reason: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -40,6 +53,11 @@ class MessageOut(BaseModel):
 
 class MessageCreate(BaseModel):
     content: str
+
+
+class FeedbackUpdate(BaseModel):
+    feedback: Literal["thumbs_up", "thumbs_down"] | None = None
+    feedback_reason: str | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -76,6 +94,8 @@ async def list_messages(
             role=m.role,
             content=m.content,
             sources_cited=m.sources_cited,
+            feedback=m.feedback,
+            feedback_reason=m.feedback_reason,
             created_at=m.created_at,
         )
         for m in messages
@@ -203,6 +223,8 @@ async def send_message(
                         "role": assistant_message.role,
                         "content": assistant_message.content,
                         "sources_cited": assistant_message.sources_cited,
+                        "feedback": assistant_message.feedback,
+                        "feedback_reason": assistant_message.feedback_reason,
                         "created_at": assistant_message.created_at.isoformat(),
                     },
                 }
@@ -227,4 +249,51 @@ async def send_message(
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
         },
+    )
+
+
+@router.patch("/api/messages/{message_id}/feedback", response_model=MessageOut)
+async def update_feedback(
+    message_id: str,
+    body: FeedbackUpdate,
+    session: AsyncSession = Depends(get_session),
+) -> MessageOut:
+    """Submit or update feedback on a message."""
+    stmt = select(Message).where(Message.id == message_id)
+    result = await session.execute(stmt)
+    message = result.scalar_one_or_none()
+    if message is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    if body.feedback_reason and body.feedback_reason not in VALID_REASONS:
+        raise HTTPException(status_code=422, detail="Invalid feedback reason")
+
+    message.feedback = body.feedback
+    message.feedback_reason = body.feedback_reason if body.feedback == "thumbs_down" else None
+    await session.commit()
+    await session.refresh(message)
+
+    # Structured telemetry: log feedback with conversation/document context
+    docs = await get_documents_for_conversation(session, message.conversation_id)
+    logger.info(
+        "feedback_submitted",
+        message_id=message.id,
+        conversation_id=message.conversation_id,
+        feedback=message.feedback,
+        feedback_reason=message.feedback_reason,
+        sources_cited=message.sources_cited,
+        document_count=len(docs),
+        document_filenames=[d.filename for d in docs],
+        total_pages=sum(d.page_count for d in docs),
+    )
+
+    return MessageOut(
+        id=message.id,
+        conversation_id=message.conversation_id,
+        role=message.role,
+        content=message.content,
+        sources_cited=message.sources_cited,
+        feedback=message.feedback,
+        feedback_reason=message.feedback_reason,
+        created_at=message.created_at,
     )

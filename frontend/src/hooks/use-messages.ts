@@ -46,6 +46,8 @@ export function useMessages(conversationId: string | null) {
 				role: "user",
 				content,
 				sources_cited: 0,
+				feedback: null,
+				feedback_reason: null,
 				created_at: new Date().toISOString(),
 			};
 
@@ -120,6 +122,8 @@ export function useMessages(conversationId: string | null) {
 						role: "assistant",
 						content: accumulated,
 						sources_cited: 0,
+						feedback: null,
+						feedback_reason: null,
 						created_at: new Date().toISOString(),
 					};
 					setMessages((prev) => [...prev, assistantMessage]);
@@ -139,6 +143,10 @@ export function useMessages(conversationId: string | null) {
 		[conversationId, streaming],
 	);
 
+	const updateMessage = useCallback((updated: Message) => {
+		setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+	}, []);
+
 	return {
 		messages,
 		loading,
@@ -147,5 +155,6 @@ export function useMessages(conversationId: string | null) {
 		streamingContent,
 		send,
 		refresh,
+		updateMessage,
 	};
 }

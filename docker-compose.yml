@@ -26,6 +26,7 @@ services:
       - ./backend/tests:/app/backend/tests
       - ./alembic:/app/alembic
       - ./uploads:/app/uploads
+      - ./sample-docs:/app/sample-docs
       - ./pyproject.toml:/app/pyproject.toml
       - ./alembic.ini:/app/alembic.ini
     env_file: .env

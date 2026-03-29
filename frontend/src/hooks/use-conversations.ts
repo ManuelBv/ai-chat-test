@@ -50,10 +50,15 @@ export function useConversations() {
 			try {
 				setError(null);
 				await api.deleteConversation(id);
-				setConversations((prev) => prev.filter((c) => c.id !== id));
-				if (selectedId === id) {
-					setSelectedId(null);
-				}
+				setConversations((prev) => {
+					const idx = prev.findIndex((c) => c.id === id);
+					const next = prev.filter((c) => c.id !== id);
+					if (selectedId === id) {
+						const neighbor = next[Math.min(idx, next.length - 1)] ?? null;
+						setSelectedId(neighbor?.id ?? null);
+					}
+					return next;
+				});
 			} catch (err) {
 				setError(
 					err instanceof Error ? err.message : "Failed to delete conversation",
