@@ -2,7 +2,7 @@ import { Loader2, Upload } from "lucide-react";
 import { type DragEvent, useCallback, useRef, useState } from "react";
 
 interface DocumentUploadProps {
-	onUpload: (file: File) => void;
+	onUpload: (files: File | File[]) => void;
 	uploading?: boolean;
 }
 
@@ -27,9 +27,14 @@ export function DocumentUpload({
 		(e: DragEvent) => {
 			e.preventDefault();
 			setDragOver(false);
-			const file = e.dataTransfer.files[0];
-			if (file && file.type === "application/pdf") {
-				onUpload(file);
+			const files = Array.from(e.dataTransfer.files).filter(
+				(f) =>
+					f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"),
+			);
+			if (files.length === 1) {
+				onUpload(files[0] as File);
+			} else if (files.length > 1) {
+				onUpload(files);
 			}
 		},
 		[onUpload],
@@ -41,9 +46,12 @@ export function DocumentUpload({
 
 	const handleFileChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const file = e.target.files?.[0];
-			if (file) {
-				onUpload(file);
+			const files = e.target.files;
+			if (!files || files.length === 0) return;
+			if (files.length === 1) {
+				onUpload(files[0] as File);
+			} else {
+				onUpload(Array.from(files));
 			}
 			if (fileInputRef.current) {
 				fileInputRef.current.value = "";
@@ -69,6 +77,7 @@ export function DocumentUpload({
 				ref={fileInputRef}
 				type="file"
 				accept=".pdf"
+				multiple
 				className="hidden"
 				onChange={handleFileChange}
 			/>
@@ -77,17 +86,17 @@ export function DocumentUpload({
 				<div className="flex flex-col items-center">
 					<Loader2 className="mb-3 h-10 w-10 animate-spin text-neutral-400" />
 					<p className="text-sm font-medium text-neutral-600">
-						Uploading document...
+						Uploading documents...
 					</p>
 				</div>
 			) : (
 				<div className="flex flex-col items-center">
 					<Upload className="mb-3 h-10 w-10 text-neutral-400" />
 					<p className="text-sm font-medium text-neutral-600">
-						Upload a PDF document
+						Upload PDF documents
 					</p>
 					<p className="mt-1 text-xs text-neutral-400">
-						Click or drag and drop
+						Click or drag and drop — multiple files supported
 					</p>
 				</div>
 			)}

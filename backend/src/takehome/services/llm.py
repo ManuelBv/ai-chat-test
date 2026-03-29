@@ -39,6 +39,7 @@ async def chat_with_document(
     user_message: str,
     document_text: str | None,
     conversation_history: list[dict[str, str]],
+    documents: list[dict[str, str]] | None = None,
 ) -> AsyncIterator[str]:
     """Stream a response to the user's message, yielding text chunks.
 
@@ -48,8 +49,18 @@ async def chat_with_document(
     # Build the full prompt with context
     prompt_parts: list[str] = []
 
-    # Add document context if available
-    if document_text:
+    # Add document context if available (multi-document or single)
+    if documents and len(documents) > 0:
+        prompt_parts.append(
+            f"The following are the contents of {len(documents)} document(s) uploaded to this conversation. "
+            "When answering questions, you may reference any of these documents. "
+            "Always specify which document you are referencing by name.\n\n"
+        )
+        for doc in documents:
+            prompt_parts.append(
+                f'<document name="{doc["filename"]}">\n{doc["text"]}\n</document>\n\n'
+            )
+    elif document_text:
         prompt_parts.append(
             "The following is the content of the document being discussed:\n\n"
             "<document>\n"

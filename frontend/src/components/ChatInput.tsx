@@ -1,24 +1,25 @@
-import { Paperclip, SendHorizontal } from "lucide-react";
-import { type KeyboardEvent, useCallback, useRef, useState } from "react";
+import { FolderOpen, Paperclip, SendHorizontal } from "lucide-react";
+import {
+	type KeyboardEvent,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 interface ChatInputProps {
 	onSend: (content: string) => void;
-	onUpload: (file: File) => void;
+	onUpload: (files: File | File[]) => void;
 	disabled: boolean;
-	hasDocument: boolean;
 }
 
-export function ChatInput({
-	onSend,
-	onUpload,
-	disabled,
-	hasDocument,
-}: ChatInputProps) {
+export function ChatInput({ onSend, onUpload, disabled }: ChatInputProps) {
 	const [value, setValue] = useState("");
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const folderInputRef = useRef<HTMLInputElement>(null);
 
 	const handleSend = useCallback(() => {
 		const trimmed = value.trim();
@@ -40,6 +41,12 @@ export function ChatInput({
 		[handleSend],
 	);
 
+	useEffect(() => {
+		if (folderInputRef.current) {
+			folderInputRef.current.setAttribute("webkitdirectory", "");
+		}
+	}, []);
+
 	const handleInput = useCallback(() => {
 		const textarea = textareaRef.current;
 		if (!textarea) return;
@@ -49,14 +56,15 @@ export function ChatInput({
 
 	const handleFileChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const file = e.target.files?.[0];
-			if (file) {
-				onUpload(file);
+			const files = e.target.files;
+			if (!files || files.length === 0) return;
+			if (files.length === 1) {
+				onUpload(files[0] as File);
+			} else {
+				onUpload(Array.from(files));
 			}
-			// Reset the input so the same file can be selected again
-			if (fileInputRef.current) {
-				fileInputRef.current.value = "";
-			}
+			if (fileInputRef.current) fileInputRef.current.value = "";
+			if (folderInputRef.current) folderInputRef.current.value = "";
 		},
 		[onUpload],
 	);
@@ -71,20 +79,42 @@ export function ChatInput({
 								variant="ghost"
 								size="icon"
 								className="h-8 w-8 flex-shrink-0"
-								disabled={hasDocument}
 								onClick={() => fileInputRef.current?.click()}
 							>
 								<Paperclip className="h-4 w-4 text-neutral-500" />
 							</Button>
 						</div>
 					</TooltipTrigger>
-					{hasDocument && (
-						<TooltipContent>Document already uploaded</TooltipContent>
-					)}
+					<TooltipContent>Upload documents</TooltipContent>
+				</Tooltip>
+
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<div>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-8 w-8 flex-shrink-0"
+								onClick={() => folderInputRef.current?.click()}
+							>
+								<FolderOpen className="h-4 w-4 text-neutral-500" />
+							</Button>
+						</div>
+					</TooltipTrigger>
+					<TooltipContent>Upload folder</TooltipContent>
 				</Tooltip>
 
 				<input
 					ref={fileInputRef}
+					type="file"
+					accept=".pdf"
+					multiple
+					className="hidden"
+					onChange={handleFileChange}
+				/>
+
+				<input
+					ref={folderInputRef}
 					type="file"
 					accept=".pdf"
 					className="hidden"
@@ -97,7 +127,7 @@ export function ChatInput({
 					onChange={(e) => setValue(e.target.value)}
 					onInput={handleInput}
 					onKeyDown={handleKeyDown}
-					placeholder="Ask a question about your document..."
+					placeholder="Ask a question about your documents..."
 					rows={1}
 					className="max-h-[200px] min-h-[36px] flex-1 resize-none bg-transparent py-1.5 text-sm text-neutral-800 placeholder-neutral-400 outline-none"
 					disabled={disabled}

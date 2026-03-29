@@ -1,6 +1,6 @@
-import { Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import type { Message } from "../types";
+import type { Document, Message } from "../types";
 import { ChatInput } from "./ChatInput";
 import { EmptyState } from "./EmptyState";
 import { MessageBubble, StreamingBubble } from "./MessageBubble";
@@ -9,21 +9,23 @@ interface ChatWindowProps {
 	messages: Message[];
 	loading: boolean;
 	error: string | null;
+	documentError: string | null;
 	streaming: boolean;
 	streamingContent: string;
-	hasDocument: boolean;
+	documents: Document[];
 	conversationId: string | null;
 	onSend: (content: string) => void;
-	onUpload: (file: File) => void;
+	onUpload: (files: File | File[]) => void;
 }
 
 export function ChatWindow({
 	messages,
 	loading,
 	error,
+	documentError,
 	streaming,
 	streamingContent,
-	hasDocument,
+	documents,
 	conversationId,
 	onSend,
 	onUpload,
@@ -61,27 +63,30 @@ export function ChatWindow({
 		);
 	}
 
+	const hasDocuments = documents.length > 0;
+
 	// Empty conversation - show upload prompt
 	if (messages.length === 0 && !streaming) {
 		return (
 			<div className="flex flex-1 flex-col bg-white">
 				<div className="flex flex-1 items-center justify-center">
-					{hasDocument ? (
+					{hasDocuments ? (
 						<div className="text-center">
 							<p className="text-sm text-neutral-500">
-								Document uploaded. Ask a question to get started.
+								{documents.length} document{documents.length !== 1 ? "s" : ""}{" "}
+								uploaded. Ask a question to get started.
 							</p>
 						</div>
 					) : (
 						<EmptyState onUpload={onUpload} />
 					)}
 				</div>
-				<ChatInput
-					onSend={onSend}
-					onUpload={onUpload}
-					disabled={streaming}
-					hasDocument={hasDocument}
-				/>
+				{documentError && (
+					<div className="mx-4 mb-1 rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-700">
+						{documentError}
+					</div>
+				)}
+				<ChatInput onSend={onSend} onUpload={onUpload} disabled={streaming} />
 			</div>
 		);
 	}
@@ -94,6 +99,31 @@ export function ChatWindow({
 				</div>
 			)}
 
+			{/* Document pills bar */}
+			{hasDocuments && (
+				<div className="border-b border-neutral-100 px-6 py-2">
+					<div className="flex items-center gap-2 overflow-x-auto">
+						<span className="flex-shrink-0 text-xs font-medium text-neutral-400">
+							Documents:
+						</span>
+						{documents.map((doc) => (
+							<span
+								key={doc.id}
+								className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs text-neutral-600"
+							>
+								<FileText className="h-3 w-3" />
+								{doc.filename}
+							</span>
+						))}
+					</div>
+					<p className="mt-1 text-xs text-neutral-400">
+						{documents.length} document{documents.length !== 1 ? "s" : ""}{" "}
+						&middot; {documents.reduce((sum, doc) => sum + doc.page_count, 0)}{" "}
+						total pages
+					</p>
+				</div>
+			)}
+
 			<div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
 				<div className="mx-auto max-w-2xl space-y-1">
 					{messages.map((message) => (
@@ -103,12 +133,13 @@ export function ChatWindow({
 				</div>
 			</div>
 
-			<ChatInput
-				onSend={onSend}
-				onUpload={onUpload}
-				disabled={streaming}
-				hasDocument={hasDocument}
-			/>
+			{documentError && (
+				<div className="mx-4 mb-1 rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-700">
+					{documentError}
+				</div>
+			)}
+
+			<ChatInput onSend={onSend} onUpload={onUpload} disabled={streaming} />
 		</div>
 	);
 }

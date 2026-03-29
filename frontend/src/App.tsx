@@ -28,9 +28,14 @@ export default function App() {
 	} = useMessages(selectedId);
 
 	const {
-		document,
+		documents,
+		selectedDocument,
+		selectedDocumentId,
+		setSelectedDocumentId,
 		upload,
-		refresh: refreshDocument,
+		removeDocument,
+		error: documentError,
+		refresh: refreshDocuments,
 	} = useDocument(selectedId);
 
 	const handleSend = useCallback(
@@ -42,14 +47,14 @@ export default function App() {
 	);
 
 	const handleUpload = useCallback(
-		async (file: File) => {
-			const doc = await upload(file);
+		async (files: File | File[]) => {
+			const doc = await upload(files);
 			if (doc) {
-				refreshDocument();
+				refreshDocuments();
 				refreshConversations();
 			}
 		},
-		[upload, refreshDocument, refreshConversations],
+		[upload, refreshDocuments, refreshConversations],
 	);
 
 	const handleCreate = useCallback(async () => {
@@ -72,15 +77,22 @@ export default function App() {
 					messages={messages}
 					loading={messagesLoading}
 					error={messagesError}
+					documentError={documentError}
 					streaming={streaming}
 					streamingContent={streamingContent}
-					hasDocument={!!document}
+					documents={documents}
 					conversationId={selectedId}
 					onSend={handleSend}
 					onUpload={handleUpload}
 				/>
 
-				<DocumentViewer document={document} />
+				<DocumentViewer
+					documents={documents}
+					selectedDocument={selectedDocument}
+					selectedDocumentId={selectedDocumentId}
+					onSelectDocument={setSelectedDocumentId}
+					onDeleteDocument={removeDocument}
+				/>
 			</div>
 		</TooltipProvider>
 	);
